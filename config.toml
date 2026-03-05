@@ -1,0 +1,3 @@
+[core]
+key = "g"
+modifiers = ["ctrl", "alt", "shift"]
