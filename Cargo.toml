@@ -20,3 +20,12 @@ codegen-units = 1
 lto = true
 panic = "abort"
 strip = true
+
+[dev-dependencies]
+criterion = { version = "0.8.2", features = ["html_reports"] }
+wgc = "1.0.1"
+windows = "0.62.2"
+
+[[bench]]
+name = "bench"
+harness = false
