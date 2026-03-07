@@ -1,6 +1,5 @@
 use base64::prelude::*;
 use image::DynamicImage;
-use log::info;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
@@ -51,25 +50,21 @@ async fn castg(api_key: &str, webhook_url: &str) -> Result<(), Box<dyn std::erro
     let base64_image = {
         let monitors = Monitor::all().unwrap();
         let image = monitors[0].capture_image().unwrap();
-        info!("キャプチャ成功");
 
         let rgb_image = DynamicImage::ImageRgba8(image)
             .resize(1024, 1024, image::imageops::FilterType::Triangle)
             .to_rgb8();
-        info!("リサイズした");
 
         let webp = Encoder::new_rgb(rgb_image.as_raw(), rgb_image.width(), rgb_image.height())
             .quality(40.0)
             .encode(Unstoppable)
             .unwrap();
-        info!("webpに変換した");
 
         // fs::write("optimized.webp", &webp).unwrap();
 
         let webp_bytes: &[u8] = &*webp;
         BASE64_STANDARD.encode(webp_bytes)
     };
-    info!("base64に変換した");
 
     let client = Client::new();
 
@@ -78,8 +73,6 @@ async fn castg(api_key: &str, webhook_url: &str) -> Result<(), Box<dyn std::erro
         "content": "翻訳処理中…",
         "avatar_url": "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfodbDxqC3Z7bTNGdrfsb87FBE/%3Fv%3D1482477394/https/www.ddo.com/images/global/header/ddo-logo-small.png?format=webp&quality=lossless",
     })).send().await?;
-
-    info!("Gemini APIへ送信した");
 
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={}",
@@ -116,21 +109,20 @@ async fn castg(api_key: &str, webhook_url: &str) -> Result<(), Box<dyn std::erro
         match serde_json::from_str::<DDO>(text) {
             Ok(analysis) => {
                 send_to_discord(&webhook_url, &analysis).await?;
-                info!("Discordに送った");
-                info!(
-                    "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
-                    response["usageMetadata"]["promptTokenCount"].to_string(),
-                    response["usageMetadata"]["candidatesTokenCount"].to_string(),
-                    response["usageMetadata"]["thoughtsTokenCount"].to_string(),
-                    response["usageMetadata"]["totalTokenCount"].to_string(),
-                );
+                // println!(
+                //     "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
+                //     response["usageMetadata"]["promptTokenCount"].to_string(),
+                //     response["usageMetadata"]["candidatesTokenCount"].to_string(),
+                //     response["usageMetadata"]["thoughtsTokenCount"].to_string(),
+                //     response["usageMetadata"]["totalTokenCount"].to_string(),
+                // );
             }
             Err(e) => {
-                info!("JSONのパースに失敗した: {}", e);
+                println!("JSONのパースに失敗した: {}", e);
             }
         }
     } else {
-        info!("{:#?}", response);
+        println!("{:#?}", response);
     }
 
     Ok(())
@@ -138,7 +130,6 @@ async fn castg(api_key: &str, webhook_url: &str) -> Result<(), Box<dyn std::erro
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::builder().format_timestamp_micros().init();
     let api_key = env::var("GEMINI_API_KEY").expect("環境変数 GEMINI_API_KEYが空っぽだぞ");
     let webhook_url = env::var("DISCORD_WEBHOOK_URL").expect("環境変数 DISCORD_WEBHOOK_URLが空っぽだぞ");
     // let title = env::var("GAME_LENS_TARGET").expect("環境変数 GAME_LENS_TARGETが空っぽだぞ");
@@ -146,7 +137,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config_str = fs::read_to_string("config.toml").unwrap();
     let config: Config = toml::from_str(&config_str).unwrap();
 
-    // info!("{:#?}", config);
+    // println!("{:#?}", config);
 
     let (tx, mut rx) = mpsc::channel::<()>(10);
 
@@ -163,7 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         hkm.register_hotkey(trigger_key, &modifiers, move || if tx.blocking_send(()).is_err() {})
             .unwrap();
 
-        info!("ホットキー押下待ち");
+        println!("ホットキー押下待ち");
 
         hkm.event_loop();
     });
@@ -172,7 +163,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let key = api_key.clone();
         let webhook = webhook_url.clone();
 
-        info!("ホットキーが押された");
         tokio::spawn(async move { if let Err(_e) = castg(&key, &webhook).await {} });
     }
 
