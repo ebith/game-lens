@@ -12,6 +12,7 @@ Discordにこんな感じに流れてくる。
 - Google AI Studioで試した範囲ではGemini 2.0 Flashが安くて良かったが新規ユーザーにはAPIが解放されていない
 - gemini-2.5-flashでthinkingBudgetを指定しないとやたら考えてるのか返事が遅くなることがある
 - たぶん1回0.2から0.3円ぐらい
-- キャプチャに0.15秒, リサイズに0.5秒, webpへの変換に0.4秒ぐらいかかっている
-- 最新のAPIでキャプチャできるライブラリも見つけた [Atliac/wgc: An ergonomic Rust wrapper for Windows.Graphics.Capture API](https://github.com/atliac/wgc)
+- 単発のスクリーンショット目的だとGDI([XCap](https://github.com/nashaofu/xcap))の方がWGC([wgc](https://github.com/Atliac/wgc))よりだいぶ早かった
+  - wgcのexamplesに従うと画面の縁がチカチカしちゃう問題もある
 - 現状DDO専用だしそれで良いが複数ゲーム対応にしたいときどうすんのが良いのか全然わからんね
+  - [pacak/bpaf: Command line parser with applicative interface](https://github.com/pacak/bpaf)とかで対応することになんのかな
