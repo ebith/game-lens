@@ -27,5 +27,5 @@ wgc = "1.0.1"
 windows = "0.62.2"
 
 [[bench]]
-name = "bench"
+name = "capture"
 harness = false
