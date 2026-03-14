@@ -75,7 +75,7 @@ async fn castg(api_key: &str, webhook_url: &str) -> Result<(), Box<dyn std::erro
     })).send().await?;
 
     let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={}",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key={}",
         api_key
     );
     let payload = json!({
@@ -84,22 +84,23 @@ async fn castg(api_key: &str, webhook_url: &str) -> Result<(), Box<dyn std::erro
             "responseSchema": {
                 "type": "OBJECT",
                 "properties": {
-                    "speaker": {"type": "STRING", "description": "話者の名前"},
-                    "body_text":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "会話本文"},
-                    "player_options":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "返事の選択肢"},
+                    "speaker": {"type": "STRING", "description": "話者の名前(英語)"},
+                    "body_text":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "会話本文(日本語)"},
+                    "player_options":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "返事の選択肢(日本語)"},
                 },
                 "required":["speaker", "body_text", "player_options"]
             },
-            "thinkingConfig": {"thinkingBudget": 600},
+            // "thinkingConfig": {"thinkingBudget": 600},
         },
         "contents":[{
             "parts":[
-                {"text": "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。"},
+                {"text": "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です。"},
                 {
                     "inlineData": {
                         "mimeType": "image/webp",
                         "data": base64_image
-                    }
+                    },
+                    "media_resolution": {"level": "MEDIA_RESOLUTION_MEDIUM"},
                 }
             ]
         }]
@@ -109,13 +110,13 @@ async fn castg(api_key: &str, webhook_url: &str) -> Result<(), Box<dyn std::erro
         match serde_json::from_str::<DDO>(text) {
             Ok(analysis) => {
                 send_to_discord(&webhook_url, &analysis).await?;
-                // println!(
-                //     "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
-                //     response["usageMetadata"]["promptTokenCount"].to_string(),
-                //     response["usageMetadata"]["candidatesTokenCount"].to_string(),
-                //     response["usageMetadata"]["thoughtsTokenCount"].to_string(),
-                //     response["usageMetadata"]["totalTokenCount"].to_string(),
-                // );
+                println!(
+                    "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
+                    response["usageMetadata"]["promptTokenCount"].to_string(),
+                    response["usageMetadata"]["candidatesTokenCount"].to_string(),
+                    response["usageMetadata"]["thoughtsTokenCount"].to_string(),
+                    response["usageMetadata"]["totalTokenCount"].to_string(),
+                );
             }
             Err(e) => {
                 println!("JSONのパースに失敗した: {}", e);
@@ -160,6 +161,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     while let Some(_) = rx.recv().await {
+        println!("翻訳処理開始");
+
         let key = api_key.clone();
         let webhook = webhook_url.clone();
 

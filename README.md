@@ -9,9 +9,8 @@ Discordにこんな感じに流れてくる。
 <img src="https://github.com/user-attachments/assets/6c9549cc-06ec-4e9e-89d4-662ec02325d4" width="33%"/>
 
 ## メモ
-- Google AI Studioで試した範囲ではGemini 2.0 Flashが安くて良かったが新規ユーザーにはAPIが解放されていない
-- gemini-2.5-flashでthinkingBudgetを指定しないとやたら考えてるのか返事が遅くなることがある
-- たぶん1回0.2から0.3円ぐらい
+- Gemini 3.1 Flash-Lite Previewだと入力545 出力100-220トークンみたいな感じになるので1回0.05-0.08円
+- Gemini 2.5 Flashだと入力276 出力200+思考トークンという感じで1回0.3円前後
 - 単発のスクリーンショット目的だとGDI([XCap](https://github.com/nashaofu/xcap))の方がWGC([wgc](https://github.com/Atliac/wgc))よりだいぶ早かった
   - wgcのexamplesに従うと画面の縁がチカチカしちゃう問題もある
 - 現状DDO専用だしそれで良いが複数ゲーム対応にしたいときどうすんのが良いのか全然わからんね
