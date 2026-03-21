@@ -1,3 +1,12 @@
 [core]
+avatar_url = "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfodbDxqC3Z7bTNGdrfsb87FBE/%3Fv%3D1482477394/https/www.ddo.com/images/global/header/ddo-logo-small.png?format=webp&quality=lossless"
+
+[[hotkeys]]
+command = 1 # クエスト会話
 key = "g"
+modifiers = ["ctrl", "alt", "shift"]
+
+[[hotkeys]]
+command = 2 # チャット欄
+key = "f"
 modifiers = ["ctrl", "alt", "shift"]

@@ -14,39 +14,33 @@ use xcap::Monitor;
 #[derive(Deserialize, Debug)]
 struct Config {
     core: Core,
+    hotkeys: Vec<Hotkey>,
 }
 #[derive(Deserialize, Debug)]
 struct Core {
+    avatar_url: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct Hotkey {
+    command: u8,
     key: String,
     modifiers: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
-struct DDO {
+struct Quest {
     speaker: String,
     body_text: Vec<String>,
     player_options: Vec<String>,
 }
 
-async fn send_to_discord(webhook_url: &str, ddo: &DDO) -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new();
-
-    client.post(webhook_url).json(&json!({
-        "username": ddo.speaker,
-        "content": ddo.body_text.join("\n"),
-        "avatar_url": "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfodbDxqC3Z7bTNGdrfsb87FBE/%3Fv%3D1482477394/https/www.ddo.com/images/global/header/ddo-logo-small.png?format=webp&quality=lossless",
-    })).send().await?;
-
-    client.post(webhook_url).json(&json!({
-        "username": "選択肢",
-        "content": ddo.player_options.join("\n"),
-        "avatar_url": "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfodbDxqC3Z7bTNGdrfsb87FBE/%3Fv%3D1482477394/https/www.ddo.com/images/global/header/ddo-logo-small.png?format=webp&quality=lossless",
-    })).send().await?;
-
-    Ok(())
+#[derive(Deserialize, Debug)]
+struct Chat {
+    lines: Vec<String>,
 }
 
-async fn castg(api_key: &str, webhook_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn castg(api_key: &str, webhook_url: &str, command: &u8, avatar_url: &str) -> Result<(), Box<dyn std::error::Error>> {
     let base64_image = {
         let monitors = Monitor::all().unwrap();
         let image = monitors[0].capture_image().unwrap();
@@ -68,60 +62,141 @@ async fn castg(api_key: &str, webhook_url: &str) -> Result<(), Box<dyn std::erro
 
     let client = Client::new();
 
-    client.post(webhook_url).json(&json!({
-        "username": "Game Lens",
-        "content": "翻訳処理中…",
-        "avatar_url": "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfodbDxqC3Z7bTNGdrfsb87FBE/%3Fv%3D1482477394/https/www.ddo.com/images/global/header/ddo-logo-small.png?format=webp&quality=lossless",
-    })).send().await?;
+    client
+        .post(webhook_url)
+        .json(&json!({
+            "username": "Game Lens",
+            "content": "翻訳処理中…",
+            "avatar_url": avatar_url,
+        }))
+        .send()
+        .await?;
+
+    let payload = match command {
+        1 => {
+            json!({
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "responseSchema": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "speaker": {"type": "STRING", "description": "話者の名前(英語)"},
+                            "body_text":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "会話本文(日本語)"},
+                            "player_options":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "返事の選択肢(日本語)"},
+                        },
+                        "required":["speaker", "body_text", "player_options"]
+                    },
+                },
+                "contents":[{
+                    "parts":[
+                        {"text": "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です。"},
+                        {
+                            "inlineData": {
+                                "mimeType": "image/webp",
+                                "data": base64_image
+                            },
+                            "media_resolution": {"level": "MEDIA_RESOLUTION_MEDIUM"},
+                        }
+                    ]
+                }]
+            })
+        }
+        2 => {
+            json!({
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "responseSchema": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "lines":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "会話文(日本語)"},
+                        },
+                        "required":["lines"]
+                    },
+                },
+                "contents":[{
+                    "parts":[
+                        {"text": "画像中の左下のチャット欄を日本語に翻訳してください。"},
+                        {
+                            "inlineData": {
+                                "mimeType": "image/webp",
+                                "data": base64_image
+                            },
+                            "media_resolution": {"level": "MEDIA_RESOLUTION_MEDIUM"},
+                        }
+                    ]
+                }]
+            })
+        }
+        _ => {
+            json!({})
+        }
+    };
 
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key={}",
         api_key
     );
-    let payload = json!({
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseSchema": {
-                "type": "OBJECT",
-                "properties": {
-                    "speaker": {"type": "STRING", "description": "話者の名前(英語)"},
-                    "body_text":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "会話本文(日本語)"},
-                    "player_options":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "返事の選択肢(日本語)"},
-                },
-                "required":["speaker", "body_text", "player_options"]
-            },
-            // "thinkingConfig": {"thinkingBudget": 600},
-        },
-        "contents":[{
-            "parts":[
-                {"text": "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です。"},
-                {
-                    "inlineData": {
-                        "mimeType": "image/webp",
-                        "data": base64_image
-                    },
-                    "media_resolution": {"level": "MEDIA_RESOLUTION_MEDIUM"},
-                }
-            ]
-        }]
-    });
     let response: serde_json::Value = client.post(&url).json(&payload).send().await?.json().await?;
     if let Some(text) = response["candidates"][0]["content"]["parts"][0]["text"].as_str() {
-        match serde_json::from_str::<DDO>(text) {
-            Ok(analysis) => {
-                send_to_discord(&webhook_url, &analysis).await?;
-                println!(
-                    "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
-                    response["usageMetadata"]["promptTokenCount"].to_string(),
-                    response["usageMetadata"]["candidatesTokenCount"].to_string(),
-                    response["usageMetadata"]["thoughtsTokenCount"].to_string(),
-                    response["usageMetadata"]["totalTokenCount"].to_string(),
-                );
-            }
-            Err(e) => {
-                println!("JSONのパースに失敗した: {}", e);
-            }
-        }
+        match command {
+            1 => match serde_json::from_str::<Quest>(text) {
+                Ok(analysis) => {
+                    client
+                        .post(webhook_url)
+                        .json(&json!({
+                            "username": &analysis.speaker,
+                            "content": &analysis.body_text.join("\n"),
+                            "avatar_url": avatar_url
+                        }))
+                        .send()
+                        .await?;
+
+                    client
+                        .post(webhook_url)
+                        .json(&json!({
+                            "username": "選択肢",
+                            "content": &analysis.player_options.join("\n"),
+                            "avatar_url": avatar_url
+                        }))
+                        .send()
+                        .await?;
+                    println!(
+                        "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
+                        response["usageMetadata"]["promptTokenCount"].to_string(),
+                        response["usageMetadata"]["candidatesTokenCount"].to_string(),
+                        response["usageMetadata"]["thoughtsTokenCount"].to_string(),
+                        response["usageMetadata"]["totalTokenCount"].to_string(),
+                    );
+                }
+                Err(e) => {
+                    println!("JSONのパースに失敗した: {}", e);
+                }
+            },
+            2 => match serde_json::from_str::<Chat>(text) {
+                Ok(analysis) => {
+                    client
+                        .post(webhook_url)
+                        .json(&json!({
+                            "username": "チャット欄",
+                            "content": &analysis.lines.join("\n"),
+                            "avatar_url": avatar_url
+                        }))
+                        .send()
+                        .await?;
+                    println!(
+                        "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
+                        response["usageMetadata"]["promptTokenCount"].to_string(),
+                        response["usageMetadata"]["candidatesTokenCount"].to_string(),
+                        response["usageMetadata"]["thoughtsTokenCount"].to_string(),
+                        response["usageMetadata"]["totalTokenCount"].to_string(),
+                    );
+                }
+                Err(e) => {
+                    println!("JSONのパースに失敗した: {}", e);
+                }
+            },
+            _ => {}
+        };
     } else {
         println!("{:#?}", response);
     }
@@ -140,33 +215,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // println!("{:#?}", config);
 
-    let (tx, mut rx) = mpsc::channel::<()>(10);
+    let (tx, mut rx) = mpsc::channel::<u8>(10);
 
     thread::spawn(move || {
-        let trigger_key = VKey::from_keyname(&config.core.key).unwrap();
-        let mut modifiers = Vec::new();
-        for mod_str in &config.core.modifiers {
-            let mod_key = VKey::from_keyname(mod_str).unwrap();
-            modifiers.push(mod_key);
-        }
-
         let mut hkm = HotkeyManager::new();
 
-        hkm.register_hotkey(trigger_key, &modifiers, move || if tx.blocking_send(()).is_err() {})
-            .unwrap();
+        for hotkey in &config.hotkeys {
+            let trigger_key = VKey::from_keyname(&hotkey.key).unwrap();
+            let mut modifiers = Vec::new();
+            for mod_str in &hotkey.modifiers {
+                let mod_key = VKey::from_keyname(mod_str).unwrap();
+                modifiers.push(mod_key);
+            }
+
+            let tx_clone = tx.clone();
+            let command = hotkey.command.clone();
+            hkm.register_hotkey(trigger_key, &modifiers, move || if tx_clone.blocking_send(command).is_err() {})
+                .unwrap();
+        }
 
         println!("ホットキー押下待ち");
 
         hkm.event_loop();
     });
 
-    while let Some(_) = rx.recv().await {
+    while let Some(command) = rx.recv().await {
         println!("翻訳処理開始");
 
         let key = api_key.clone();
         let webhook = webhook_url.clone();
+        let avatar_url = config.core.avatar_url.clone();
 
-        tokio::spawn(async move { if let Err(_e) = castg(&key, &webhook).await {} });
+        tokio::spawn(async move { if let Err(_e) = castg(&key, &webhook, &command, &avatar_url).await {} });
     }
 
     Ok(())

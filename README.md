@@ -9,6 +9,7 @@ Discordにこんな感じに流れてくる。
 <img src="https://github.com/user-attachments/assets/6c9549cc-06ec-4e9e-89d4-662ec02325d4" width="33%"/>
 
 ## メモ
+- ホットキー2つ設定することでクエスト会話ウインドウと左下のチャット欄どっちも翻訳できるようにした
 - Gemini 3.1 Flash-Lite Previewだと入力545 出力100-220トークンみたいな感じになるので1回0.05-0.08円
 - Gemini 2.5 Flashだと入力276 出力200+思考トークンという感じで1回0.3円前後
 - 単発のスクリーンショット目的だとGDI([XCap](https://github.com/nashaofu/xcap))の方がWGC([wgc](https://github.com/Atliac/wgc))よりだいぶ早かった
