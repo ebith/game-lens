@@ -10,6 +10,7 @@ Discordにこんな感じに流れてくる。
 
 ## メモ
 - ホットキー2つ設定することでクエスト会話ウインドウと左下のチャット欄どっちも翻訳できるようにした
+- 2026年4月現在Gemini 3.1 Flash Liteの無料枠が15RPM/500RPDなのでこのツールで使う程度だと無料でいけそう
 - Gemini 3.1 Flash-Lite Previewだと入力545 出力100-220トークンみたいな感じになるので1回0.05-0.08円
 - Gemini 2.5 Flashだと入力276 出力200+思考トークンという感じで1回0.3円前後
 - 単発のスクリーンショット目的だとGDI([XCap](https://github.com/nashaofu/xcap))の方がWGC([wgc](https://github.com/Atliac/wgc))よりだいぶ早かった
