@@ -19,6 +19,7 @@ struct Config {
 #[derive(Deserialize, Debug)]
 struct Core {
     avatar_url: String,
+    gemini_api_model: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -40,7 +41,13 @@ struct Chat {
     lines: Vec<String>,
 }
 
-async fn castg(api_key: &str, webhook_url: &str, command: &u8, avatar_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn castg(
+    api_key: &str,
+    webhook_url: &str,
+    command: &u8,
+    avatar_url: &str,
+    api_model: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let base64_image = {
         let monitors = Monitor::all().unwrap();
         let image = monitors[0].capture_image().unwrap();
@@ -133,8 +140,8 @@ async fn castg(api_key: &str, webhook_url: &str, command: &u8, avatar_url: &str)
     };
 
     let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key={}",
-        api_key
+        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+        api_model, api_key
     );
     let response: serde_json::Value = client.post(&url).json(&payload).send().await?.json().await?;
     if let Some(text) = response["candidates"][0]["content"]["parts"][0]["text"].as_str() {
@@ -245,8 +252,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let key = api_key.clone();
         let webhook = webhook_url.clone();
         let avatar_url = config.core.avatar_url.clone();
+        let model = config.core.gemini_api_model.clone();
 
-        tokio::spawn(async move { if let Err(_e) = castg(&key, &webhook, &command, &avatar_url).await {} });
+        tokio::spawn(async move { if let Err(_e) = castg(&key, &webhook, &command, &avatar_url, &model).await {} });
     }
 
     Ok(())

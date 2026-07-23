@@ -1,5 +1,6 @@
 [core]
 avatar_url = "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfodbDxqC3Z7bTNGdrfsb87FBE/%3Fv%3D1482477394/https/www.ddo.com/images/global/header/ddo-logo-small.png?format=webp&quality=lossless"
+gemini_api_model = "gemini-3.5-flash-lite"
 
 [[hotkeys]]
 command = 1 # クエスト会話
