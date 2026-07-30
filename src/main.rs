@@ -215,7 +215,6 @@ async fn castg(
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = env::var("GEMINI_API_KEY").expect("環境変数 GEMINI_API_KEYが空っぽだぞ");
     let webhook_url = env::var("DISCORD_WEBHOOK_URL").expect("環境変数 DISCORD_WEBHOOK_URLが空っぽだぞ");
-    // let title = env::var("GAME_LENS_TARGET").expect("環境変数 GAME_LENS_TARGETが空っぽだぞ");
 
     let config_str = fs::read_to_string("config.toml").unwrap();
     let config: Config = toml::from_str(&config_str).unwrap();
