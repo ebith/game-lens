@@ -87,16 +87,16 @@ async fn castg(
                     "responseSchema": {
                         "type": "OBJECT",
                         "properties": {
-                            "speaker": {"type": "STRING", "description": "話者の名前(英語)"},
-                            "body_text":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "会話本文(日本語)"},
-                            "player_options":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "返事の選択肢(日本語)"},
+                            "speaker": {"type": "STRING", "description": "話者の名前の英語原文"},
+                            "body_text":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "会話本文の日本語翻訳"},
+                            "player_options":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "返事の選択肢の日本語翻訳"},
                         },
                         "required":["speaker", "body_text", "player_options"]
                     },
                 },
                 "contents":[{
                     "parts":[
-                        {"text": "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です。"},
+                        {"text": "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です"},
                         {
                             "inlineData": {
                                 "mimeType": "image/webp",
@@ -115,14 +115,14 @@ async fn castg(
                     "responseSchema": {
                         "type": "OBJECT",
                         "properties": {
-                            "lines":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "会話文(日本語)"},
+                            "lines":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "ギルド・パーティのチャット、NPCのセリフ、システムアナウンス、ダンジョンマスターのナレーションなどの日本語翻訳"},
                         },
                         "required":["lines"]
                     },
                 },
                 "contents":[{
                     "parts":[
-                        {"text": "画像中の左下のチャット欄を日本語に翻訳してください。"},
+                        {"text": "画像中の左下のチャット欄の文章を読み取り、日本語に翻訳してください。※英語原文のまま出力することは厳禁です"},
                         {
                             "inlineData": {
                                 "mimeType": "image/webp",
