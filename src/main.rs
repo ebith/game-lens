@@ -2,7 +2,7 @@ use base64::prelude::*;
 use image::DynamicImage;
 use reqwest::Client;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::env;
 use std::fs;
 use std::thread;
@@ -20,6 +20,7 @@ struct Config {
 struct Core {
     avatar_url: String,
     gemini_api_model: String,
+    loading_message: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -38,17 +39,22 @@ struct Action {
 }
 
 async fn castg(
+    client: &Client,
     api_key: &str,
     webhook_url: &str,
     avatar_url: &str,
     api_model: &str,
+    loading_message: &str,
     prompt: &str,
     response_schema: &Value,
     discord_messages: &[DiscordMessageConfig],
 ) -> Result<(), Box<dyn std::error::Error>> {
     let base64_image = {
-        let monitors = Monitor::all().unwrap();
-        let image = monitors[0].capture_image().unwrap();
+        let monitors = Monitor::all()?;
+        if monitors.is_empty() {
+            return Err("モニターが見つからなかった".into());
+        }
+        let image = monitors[0].capture_image()?;
 
         let rgb_image = DynamicImage::ImageRgba8(image)
             .resize(1024, 1024, image::imageops::FilterType::Triangle)
@@ -57,7 +63,7 @@ async fn castg(
         let webp = Encoder::new_rgb(rgb_image.as_raw(), rgb_image.width(), rgb_image.height())
             .quality(40.0)
             .encode(Unstoppable)
-            .unwrap();
+            .map_err(|e| format!("WebPエンコードエラー: {:?}", e))?;
 
         // fs::write("optimized.webp", &webp).unwrap();
 
@@ -65,13 +71,11 @@ async fn castg(
         BASE64_STANDARD.encode(webp_bytes)
     };
 
-    let client = Client::new();
-
     client
         .post(webhook_url)
         .json(&json!({
             "username": "Game Lens",
-            "content": "翻訳処理中…",
+            "content": loading_message,
             "avatar_url": avatar_url,
         }))
         .send()
@@ -162,8 +166,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = env::var("GEMINI_API_KEY").expect("環境変数 GEMINI_API_KEYが空っぽだぞ");
     let webhook_url = env::var("DISCORD_WEBHOOK_URL").expect("環境変数 DISCORD_WEBHOOK_URLが空っぽだぞ");
 
-    let config_str = fs::read_to_string("config.toml").unwrap();
-    let config: Config = toml::from_str(&config_str).unwrap();
+    let config_str = fs::read_to_string("config.toml").unwrap_or_else(|e| {
+        eprintln!("config.toml の読み込みに失敗した: {}", e);
+        std::process::exit(1);
+    });
+    let config: Config = toml::from_str(&config_str).unwrap_or_else(|e| {
+        eprintln!("config.toml のパースに失敗した: {}", e);
+        std::process::exit(1);
+    });
+
+    let client = Client::new();
 
     let (tx, mut rx) = mpsc::channel::<usize>(10);
 
@@ -172,16 +184,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut hkm = HotkeyManager::new();
 
         for (index, action) in config_clone.actions.iter().enumerate() {
-            let trigger_key = VKey::from_keyname(&action.key).unwrap();
+            let trigger_key = match VKey::from_keyname(&action.key) {
+                Ok(k) => k,
+                Err(_) => {
+                    eprintln!("無効なキー名 ({}): {}", index, action.key);
+                    continue;
+                }
+            };
+
             let mut modifiers = Vec::new();
+            let mut has_invalid_mod = false;
             for mod_str in &action.modifiers {
-                let mod_key = VKey::from_keyname(mod_str).unwrap();
-                modifiers.push(mod_key);
+                match VKey::from_keyname(mod_str) {
+                    Ok(k) => modifiers.push(k),
+                    Err(_) => {
+                        eprintln!("無効な修飾キー名: {}", mod_str);
+                        has_invalid_mod = true;
+                    }
+                }
+            }
+            if has_invalid_mod {
+                continue;
             }
 
             let tx_clone = tx.clone();
-            hkm.register_hotkey(trigger_key, &modifiers, move || if tx_clone.blocking_send(index).is_err() {})
-                .unwrap();
+            if let Err(e) = hkm.register_hotkey(trigger_key, &modifiers, move || if tx_clone.blocking_send(index).is_err() {}) {
+                eprintln!("ホットキーの登録に失敗した ({:?} + {:?}): {}", trigger_key, modifiers, e);
+            }
         }
 
         println!("ホットキー押下待ち");
@@ -193,16 +222,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("翻訳処理開始");
 
         if let Some(action) = config.actions.get(index) {
+            let client_clone = client.clone();
             let key = api_key.clone();
             let webhook = webhook_url.clone();
             let avatar_url = config.core.avatar_url.clone();
             let model = config.core.gemini_api_model.clone();
+            let loading_msg = config.core.loading_message.clone();
             let prompt = action.prompt.clone();
             let response_schema = action.response_schema.clone();
             let discord_messages = action.discord_messages.clone();
 
             tokio::spawn(async move {
-                if let Err(_e) = castg(&key, &webhook, &avatar_url, &model, &prompt, &response_schema, &discord_messages).await {}
+                if let Err(e) = castg(
+                    &client_clone,
+                    &key,
+                    &webhook,
+                    &avatar_url,
+                    &model,
+                    &loading_msg,
+                    &prompt,
+                    &response_schema,
+                    &discord_messages,
+                )
+                .await
+                {
+                    eprintln!("実行エラー: {}", e);
+                }
             });
         }
     }
