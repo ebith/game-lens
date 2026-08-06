@@ -23,34 +23,28 @@ struct Core {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+struct DiscordMessageConfig {
+    username: String,
+    content_key: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 struct Hotkey {
-    command: u8,
     key: String,
     modifiers: Vec<String>,
     prompt: String,
     response_schema: Value,
-}
-
-#[derive(Deserialize, Debug)]
-struct Quest {
-    speaker: String,
-    body_text: Vec<String>,
-    player_options: Vec<String>,
-}
-
-#[derive(Deserialize, Debug)]
-struct Chat {
-    lines: Vec<String>,
+    discord_messages: Vec<DiscordMessageConfig>,
 }
 
 async fn castg(
     api_key: &str,
     webhook_url: &str,
-    command: &u8,
     avatar_url: &str,
     api_model: &str,
     prompt: &str,
     response_schema: &Value,
+    discord_messages: &[DiscordMessageConfig],
 ) -> Result<(), Box<dyn std::error::Error>> {
     let base64_image = {
         let monitors = Monitor::all().unwrap();
@@ -108,65 +102,54 @@ async fn castg(
     );
     let response: serde_json::Value = client.post(&url).json(&payload).send().await?.json().await?;
     if let Some(text) = response["candidates"][0]["content"]["parts"][0]["text"].as_str() {
-        match command {
-            1 => match serde_json::from_str::<Quest>(text) {
-                Ok(analysis) => {
-                    client
-                        .post(webhook_url)
-                        .json(&json!({
-                            "username": &analysis.speaker,
-                            "content": &analysis.body_text.join("\n"),
-                            "avatar_url": avatar_url
-                        }))
-                        .send()
-                        .await?;
+        match serde_json::from_str::<serde_json::Value>(text) {
+            Ok(parsed) => {
+                for msg_config in discord_messages {
+                    let mut username = msg_config.username.clone();
+                    if username.starts_with('$') {
+                        let key = &username[1..];
+                        if let Some(val) = parsed.get(key) {
+                            if let Some(s) = val.as_str() {
+                                username = s.to_string();
+                            }
+                        }
+                    }
+
+                    let mut content = String::new();
+                    if let Some(val) = parsed.get(&msg_config.content_key) {
+                        if let Some(arr) = val.as_array() {
+                            let strings: Vec<&str> = arr.iter().filter_map(|v| v.as_str()).collect();
+                            content = strings.join("\n");
+                        } else if let Some(s) = val.as_str() {
+                            content = s.to_string();
+                        } else {
+                            content = val.to_string();
+                        }
+                    }
 
                     client
                         .post(webhook_url)
                         .json(&json!({
-                            "username": "選択肢",
-                            "content": &analysis.player_options.join("\n"),
+                            "username": username,
+                            "content": content,
                             "avatar_url": avatar_url
                         }))
                         .send()
                         .await?;
-                    println!(
-                        "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
-                        response["usageMetadata"]["promptTokenCount"].to_string(),
-                        response["usageMetadata"]["candidatesTokenCount"].to_string(),
-                        response["usageMetadata"]["thoughtsTokenCount"].to_string(),
-                        response["usageMetadata"]["totalTokenCount"].to_string(),
-                    );
                 }
-                Err(e) => {
-                    println!("JSONのパースに失敗した: {}", e);
-                }
-            },
-            2 => match serde_json::from_str::<Chat>(text) {
-                Ok(analysis) => {
-                    client
-                        .post(webhook_url)
-                        .json(&json!({
-                            "username": "チャット欄",
-                            "content": &analysis.lines.join("\n"),
-                            "avatar_url": avatar_url
-                        }))
-                        .send()
-                        .await?;
-                    println!(
-                        "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
-                        response["usageMetadata"]["promptTokenCount"].to_string(),
-                        response["usageMetadata"]["candidatesTokenCount"].to_string(),
-                        response["usageMetadata"]["thoughtsTokenCount"].to_string(),
-                        response["usageMetadata"]["totalTokenCount"].to_string(),
-                    );
-                }
-                Err(e) => {
-                    println!("JSONのパースに失敗した: {}", e);
-                }
-            },
-            _ => {}
-        };
+
+                println!(
+                    "トークン使用量: 入力: {:?}, 出力: {:?}, 思考: {:?}, 合計: {:?}",
+                    response["usageMetadata"]["promptTokenCount"].to_string(),
+                    response["usageMetadata"]["candidatesTokenCount"].to_string(),
+                    response["usageMetadata"]["thoughtsTokenCount"].to_string(),
+                    response["usageMetadata"]["totalTokenCount"].to_string(),
+                );
+            }
+            Err(e) => {
+                println!("JSONのパースに失敗した: {}", e);
+            }
+        }
     } else {
         println!("{:#?}", response);
     }
@@ -182,15 +165,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config_str = fs::read_to_string("config.toml").unwrap();
     let config: Config = toml::from_str(&config_str).unwrap();
 
-    // println!("{:#?}", config);
-
-    let (tx, mut rx) = mpsc::channel::<u8>(10);
+    let (tx, mut rx) = mpsc::channel::<usize>(10);
 
     let config_clone = config.clone();
     thread::spawn(move || {
         let mut hkm = HotkeyManager::new();
 
-        for hotkey in &config_clone.hotkeys {
+        for (index, hotkey) in config_clone.hotkeys.iter().enumerate() {
             let trigger_key = VKey::from_keyname(&hotkey.key).unwrap();
             let mut modifiers = Vec::new();
             for mod_str in &hotkey.modifiers {
@@ -199,8 +180,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             let tx_clone = tx.clone();
-            let command = hotkey.command.clone();
-            hkm.register_hotkey(trigger_key, &modifiers, move || if tx_clone.blocking_send(command).is_err() {})
+            hkm.register_hotkey(trigger_key, &modifiers, move || if tx_clone.blocking_send(index).is_err() {})
                 .unwrap();
         }
 
@@ -209,19 +189,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         hkm.event_loop();
     });
 
-    while let Some(command) = rx.recv().await {
+    while let Some(index) = rx.recv().await {
         println!("翻訳処理開始");
 
-        if let Some(hotkey) = config.hotkeys.iter().find(|h| h.command == command) {
+        if let Some(hotkey) = config.hotkeys.get(index) {
             let key = api_key.clone();
             let webhook = webhook_url.clone();
             let avatar_url = config.core.avatar_url.clone();
             let model = config.core.gemini_api_model.clone();
             let prompt = hotkey.prompt.clone();
             let response_schema = hotkey.response_schema.clone();
+            let discord_messages = hotkey.discord_messages.clone();
 
             tokio::spawn(async move {
-                if let Err(_e) = castg(&key, &webhook, &command, &avatar_url, &model, &prompt, &response_schema).await {}
+                if let Err(_e) = castg(&key, &webhook, &avatar_url, &model, &prompt, &response_schema, &discord_messages).await {}
             });
         }
     }
