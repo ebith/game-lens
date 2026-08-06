@@ -2,51 +2,51 @@
 avatar_url = "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfodbDxqC3Z7bTNGdrfsb87FBE/%3Fv%3D1482477394/https/www.ddo.com/images/global/header/ddo-logo-small.png?format=webp&quality=lossless"
 gemini_api_model = "gemini-3.5-flash-lite"
 
-[[hotkeys]]
+[[actions]]
 key = "g"
 modifiers = ["ctrl", "alt", "shift"]
 prompt = "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です"
 
-[hotkeys.response_schema]
+[actions.response_schema]
 type = "OBJECT"
 required = ["speaker", "body_text", "player_options"]
-[hotkeys.response_schema.properties.speaker]
+[actions.response_schema.properties.speaker]
 type = "STRING"
 description = "話者の名前の英語原文"
-[hotkeys.response_schema.properties.body_text]
+[actions.response_schema.properties.body_text]
 type = "ARRAY"
 description = "会話本文の日本語翻訳"
-[hotkeys.response_schema.properties.body_text.items]
+[actions.response_schema.properties.body_text.items]
 type = "STRING"
-[hotkeys.response_schema.properties.player_options]
+[actions.response_schema.properties.player_options]
 type = "ARRAY"
 description = "返事の選択肢の日本語翻訳"
-[hotkeys.response_schema.properties.player_options.items]
+[actions.response_schema.properties.player_options.items]
 type = "STRING"
 
-[[hotkeys.discord_messages]]
+[[actions.discord_messages]]
 username = "$speaker"
 content_key = "body_text"
 
-[[hotkeys.discord_messages]]
+[[actions.discord_messages]]
 username = "選択肢"
 content_key = "player_options"
 
 
-[[hotkeys]]
+[[actions]]
 key = "f"
 modifiers = ["ctrl", "alt", "shift"]
 prompt = "画像中の左下のチャット欄の文章を読み取り、日本語に翻訳してください。※英語原文のまま出力することは厳禁です"
 
-[hotkeys.response_schema]
+[actions.response_schema]
 type = "OBJECT"
 required = ["lines"]
-[hotkeys.response_schema.properties.lines]
+[actions.response_schema.properties.lines]
 type = "ARRAY"
 description = "ギルド・パーティのチャット、NPCのセリフ、システムアナウンス、ダンジョンマスターのナレーションなどの日本語翻訳"
-[hotkeys.response_schema.properties.lines.items]
+[actions.response_schema.properties.lines.items]
 type = "STRING"
 
-[[hotkeys.discord_messages]]
+[[actions.discord_messages]]
 username = "チャット欄"
 content_key = "lines"

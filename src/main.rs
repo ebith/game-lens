@@ -14,7 +14,7 @@ use xcap::Monitor;
 #[derive(Deserialize, Debug, Clone)]
 struct Config {
     core: Core,
-    hotkeys: Vec<Hotkey>,
+    actions: Vec<Action>,
 }
 #[derive(Deserialize, Debug, Clone)]
 struct Core {
@@ -29,7 +29,7 @@ struct DiscordMessageConfig {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-struct Hotkey {
+struct Action {
     key: String,
     modifiers: Vec<String>,
     prompt: String,
@@ -171,10 +171,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     thread::spawn(move || {
         let mut hkm = HotkeyManager::new();
 
-        for (index, hotkey) in config_clone.hotkeys.iter().enumerate() {
-            let trigger_key = VKey::from_keyname(&hotkey.key).unwrap();
+        for (index, action) in config_clone.actions.iter().enumerate() {
+            let trigger_key = VKey::from_keyname(&action.key).unwrap();
             let mut modifiers = Vec::new();
-            for mod_str in &hotkey.modifiers {
+            for mod_str in &action.modifiers {
                 let mod_key = VKey::from_keyname(mod_str).unwrap();
                 modifiers.push(mod_key);
             }
@@ -192,14 +192,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(index) = rx.recv().await {
         println!("翻訳処理開始");
 
-        if let Some(hotkey) = config.hotkeys.get(index) {
+        if let Some(action) = config.actions.get(index) {
             let key = api_key.clone();
             let webhook = webhook_url.clone();
             let avatar_url = config.core.avatar_url.clone();
             let model = config.core.gemini_api_model.clone();
-            let prompt = hotkey.prompt.clone();
-            let response_schema = hotkey.response_schema.clone();
-            let discord_messages = hotkey.discord_messages.clone();
+            let prompt = action.prompt.clone();
+            let response_schema = action.response_schema.clone();
+            let discord_messages = action.discord_messages.clone();
 
             tokio::spawn(async move {
                 if let Err(_e) = castg(&key, &webhook, &avatar_url, &model, &prompt, &response_schema, &discord_messages).await {}
