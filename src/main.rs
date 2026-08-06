@@ -166,12 +166,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = env::var("GEMINI_API_KEY").expect("環境変数 GEMINI_API_KEYが空っぽだぞ");
     let webhook_url = env::var("DISCORD_WEBHOOK_URL").expect("環境変数 DISCORD_WEBHOOK_URLが空っぽだぞ");
 
-    let config_str = fs::read_to_string("config.toml").unwrap_or_else(|e| {
-        eprintln!("config.toml の読み込みに失敗した: {}", e);
+    let args: Vec<String> = env::args().collect();
+    let config_path = if args.len() > 1 {
+        &args[1]
+    } else {
+        "config.toml"
+    };
+
+    let config_str = fs::read_to_string(config_path).unwrap_or_else(|e| {
+        eprintln!("{} の読み込みに失敗した: {}", config_path, e);
         std::process::exit(1);
     });
     let config: Config = toml::from_str(&config_str).unwrap_or_else(|e| {
-        eprintln!("config.toml のパースに失敗した: {}", e);
+        eprintln!("{} のパースに失敗した: {}", config_path, e);
         std::process::exit(1);
     });
 
