@@ -6,8 +6,37 @@ gemini_api_model = "gemini-3.5-flash-lite"
 command = 1 # クエスト会話
 key = "g"
 modifiers = ["ctrl", "alt", "shift"]
+prompt = "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です"
+
+[hotkeys.response_schema]
+type = "OBJECT"
+required = ["speaker", "body_text", "player_options"]
+[hotkeys.response_schema.properties.speaker]
+type = "STRING"
+description = "話者の名前の英語原文"
+[hotkeys.response_schema.properties.body_text]
+type = "ARRAY"
+description = "会話本文の日本語翻訳"
+[hotkeys.response_schema.properties.body_text.items]
+type = "STRING"
+[hotkeys.response_schema.properties.player_options]
+type = "ARRAY"
+description = "返事の選択肢の日本語翻訳"
+[hotkeys.response_schema.properties.player_options.items]
+type = "STRING"
+
 
 [[hotkeys]]
 command = 2 # チャット欄
 key = "f"
 modifiers = ["ctrl", "alt", "shift"]
+prompt = "画像中の左下のチャット欄の文章を読み取り、日本語に翻訳してください。※英語原文のまま出力することは厳禁です"
+
+[hotkeys.response_schema]
+type = "OBJECT"
+required = ["lines"]
+[hotkeys.response_schema.properties.lines]
+type = "ARRAY"
+description = "ギルド・パーティのチャット、NPCのセリフ、システムアナウンス、ダンジョンマスターのナレーションなどの日本語翻訳"
+[hotkeys.response_schema.properties.lines.items]
+type = "STRING"

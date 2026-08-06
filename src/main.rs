@@ -2,7 +2,7 @@ use base64::prelude::*;
 use image::DynamicImage;
 use reqwest::Client;
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{json, Value};
 use std::env;
 use std::fs;
 use std::thread;
@@ -11,22 +11,24 @@ use webpx::{Encoder, Unstoppable};
 use win_hotkeys::{HotkeyManager, VKey};
 use xcap::Monitor;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 struct Config {
     core: Core,
     hotkeys: Vec<Hotkey>,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 struct Core {
     avatar_url: String,
     gemini_api_model: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 struct Hotkey {
     command: u8,
     key: String,
     modifiers: Vec<String>,
+    prompt: String,
+    response_schema: Value,
 }
 
 #[derive(Deserialize, Debug)]
@@ -47,6 +49,8 @@ async fn castg(
     command: &u8,
     avatar_url: &str,
     api_model: &str,
+    prompt: &str,
+    response_schema: &Value,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let base64_image = {
         let monitors = Monitor::all().unwrap();
@@ -79,65 +83,24 @@ async fn castg(
         .send()
         .await?;
 
-    let payload = match command {
-        1 => {
-            json!({
-                "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "responseSchema": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "speaker": {"type": "STRING", "description": "話者の名前の英語原文"},
-                            "body_text":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "会話本文の日本語翻訳"},
-                            "player_options":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "返事の選択肢の日本語翻訳"},
-                        },
-                        "required":["speaker", "body_text", "player_options"]
+    let payload = json!({
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": response_schema,
+        },
+        "contents":[{
+            "parts":[
+                {"text": prompt},
+                {
+                    "inlineData": {
+                        "mimeType": "image/webp",
+                        "data": base64_image
                     },
-                },
-                "contents":[{
-                    "parts":[
-                        {"text": "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です"},
-                        {
-                            "inlineData": {
-                                "mimeType": "image/webp",
-                                "data": base64_image
-                            },
-                            "media_resolution": {"level": "MEDIA_RESOLUTION_MEDIUM"},
-                        }
-                    ]
-                }]
-            })
-        }
-        2 => {
-            json!({
-                "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "responseSchema": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "lines":{"type": "ARRAY", "items": {"type": "STRING"}, "description": "ギルド・パーティのチャット、NPCのセリフ、システムアナウンス、ダンジョンマスターのナレーションなどの日本語翻訳"},
-                        },
-                        "required":["lines"]
-                    },
-                },
-                "contents":[{
-                    "parts":[
-                        {"text": "画像中の左下のチャット欄の文章を読み取り、日本語に翻訳してください。※英語原文のまま出力することは厳禁です"},
-                        {
-                            "inlineData": {
-                                "mimeType": "image/webp",
-                                "data": base64_image
-                            },
-                            "media_resolution": {"level": "MEDIA_RESOLUTION_MEDIUM"},
-                        }
-                    ]
-                }]
-            })
-        }
-        _ => {
-            json!({})
-        }
-    };
+                    "media_resolution": {"level": "MEDIA_RESOLUTION_MEDIUM"},
+                }
+            ]
+        }]
+    });
 
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
@@ -223,10 +186,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (tx, mut rx) = mpsc::channel::<u8>(10);
 
+    let config_clone = config.clone();
     thread::spawn(move || {
         let mut hkm = HotkeyManager::new();
 
-        for hotkey in &config.hotkeys {
+        for hotkey in &config_clone.hotkeys {
             let trigger_key = VKey::from_keyname(&hotkey.key).unwrap();
             let mut modifiers = Vec::new();
             for mod_str in &hotkey.modifiers {
@@ -248,12 +212,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(command) = rx.recv().await {
         println!("翻訳処理開始");
 
-        let key = api_key.clone();
-        let webhook = webhook_url.clone();
-        let avatar_url = config.core.avatar_url.clone();
-        let model = config.core.gemini_api_model.clone();
+        if let Some(hotkey) = config.hotkeys.iter().find(|h| h.command == command) {
+            let key = api_key.clone();
+            let webhook = webhook_url.clone();
+            let avatar_url = config.core.avatar_url.clone();
+            let model = config.core.gemini_api_model.clone();
+            let prompt = hotkey.prompt.clone();
+            let response_schema = hotkey.response_schema.clone();
 
-        tokio::spawn(async move { if let Err(_e) = castg(&key, &webhook, &command, &avatar_url, &model).await {} });
+            tokio::spawn(async move {
+                if let Err(_e) = castg(&key, &webhook, &command, &avatar_url, &model, &prompt, &response_schema).await {}
+            });
+        }
     }
 
     Ok(())
