@@ -21,7 +21,7 @@ struct Core {
     avatar_url: String,
     gemini_api_model: String,
     loading_message: String,
-    system_instruction: Option<String>,
+    system_instruction: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -46,7 +46,7 @@ async fn castg(
     avatar_url: &str,
     api_model: &str,
     loading_message: &str,
-    system_instruction: Option<&str>,
+    system_instruction: &str,
     prompt: &str,
     response_schema: &Value,
     discord_messages: &[DiscordMessageConfig],
@@ -83,7 +83,12 @@ async fn castg(
         .send()
         .await?;
 
-    let mut payload = json!({
+    let payload = json!({
+        "systemInstruction": {
+            "parts": [
+                { "text": system_instruction }
+            ]
+        },
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": response_schema,
@@ -101,19 +106,6 @@ async fn castg(
             ]
         }]
     });
-
-    if let Some(instruction) = system_instruction {
-        if let Some(obj) = payload.as_object_mut() {
-            obj.insert(
-                "systemInstruction".to_string(),
-                json!({
-                    "parts": [
-                        { "text": instruction }
-                    ]
-                })
-            );
-        }
-    }
 
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
@@ -182,11 +174,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let webhook_url = env::var("DISCORD_WEBHOOK_URL").expect("環境変数 DISCORD_WEBHOOK_URLが空っぽだぞ");
 
     let args: Vec<String> = env::args().collect();
-    let config_path = if args.len() > 1 {
-        &args[1]
-    } else {
-        "config.toml"
-    };
+    let config_path = if args.len() > 1 { &args[1] } else { "config.toml" };
 
     let config_str = fs::read_to_string(config_path).unwrap_or_else(|e| {
         eprintln!("{} の読み込みに失敗した: {}", config_path, e);
@@ -263,7 +251,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &avatar_url,
                     &model,
                     &loading_msg,
-                    sys_inst.as_deref(),
+                    &sys_inst,
                     &prompt,
                     &response_schema,
                     &discord_messages,
