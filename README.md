@@ -9,6 +9,7 @@ Discordにこんな感じに流れてくる。
 <img src="https://github.com/user-attachments/assets/6c9549cc-06ec-4e9e-89d4-662ec02325d4" width="33%"/>
 
 ## メモ
+- 目の前のNPCとかオブジェクトの解説もさせてみたらとても便利になった
 - デフォルトでは`config.toml`を読むが`game-lens.exe ddo.toml`とかやると別ファイルも読めるようになった
 - ハードコードしてた部分を`config.toml`から読むようにしたので汎用ツールになった
 - Gemini Flash Lite系の無料枠が15RPM/500RPDなのでこのツールで使う程度だと無料でいけそう
