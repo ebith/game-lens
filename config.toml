@@ -2,6 +2,7 @@
 avatar_url = "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfodbDxqC3Z7bTNGdrfsb87FBE/%3Fv%3D1482477394/https/www.ddo.com/images/global/header/ddo-logo-small.png?format=webp&quality=lossless"
 gemini_api_model = "gemini-3.5-flash-lite"
 loading_message = "翻訳処理中…"
+system_instruction = "提供される画像は『Dungeons & Dragons Online』のスクリーンショットです。指示に従い結果を日本語で出力してください。"
 
 [[actions]]
 key = "g"
@@ -56,7 +57,7 @@ content_key = "lines"
 [[actions]]
 key = "v"
 modifiers = ["ctrl", "alt", "shift"]
-prompt = "画像中のキャラクターやオブジェクトの上に表示されている名前を日本語訳してください。可能ならどういった人・物・集団などであるのかの解説も付けてください。画像はDungeons & Dragons Onlineのものです。"
+prompt = "画像中のキャラクターやオブジェクトの上に表示されている名前を日本語訳してください。可能ならどういった人・物・集団などであるのかの解説も付けてください。Hirelingは無視してください。ゲームタイトルは明らかなので出力不要です"
 
 [actions.response_schema]
 type = "OBJECT"

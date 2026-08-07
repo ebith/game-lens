@@ -21,6 +21,7 @@ struct Core {
     avatar_url: String,
     gemini_api_model: String,
     loading_message: String,
+    system_instruction: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -45,6 +46,7 @@ async fn castg(
     avatar_url: &str,
     api_model: &str,
     loading_message: &str,
+    system_instruction: Option<&str>,
     prompt: &str,
     response_schema: &Value,
     discord_messages: &[DiscordMessageConfig],
@@ -81,7 +83,7 @@ async fn castg(
         .send()
         .await?;
 
-    let payload = json!({
+    let mut payload = json!({
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": response_schema,
@@ -99,6 +101,19 @@ async fn castg(
             ]
         }]
     });
+
+    if let Some(instruction) = system_instruction {
+        if let Some(obj) = payload.as_object_mut() {
+            obj.insert(
+                "systemInstruction".to_string(),
+                json!({
+                    "parts": [
+                        { "text": instruction }
+                    ]
+                })
+            );
+        }
+    }
 
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
@@ -235,6 +250,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let avatar_url = config.core.avatar_url.clone();
             let model = config.core.gemini_api_model.clone();
             let loading_msg = config.core.loading_message.clone();
+            let sys_inst = config.core.system_instruction.clone();
             let prompt = action.prompt.clone();
             let response_schema = action.response_schema.clone();
             let discord_messages = action.discord_messages.clone();
@@ -247,6 +263,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &avatar_url,
                     &model,
                     &loading_msg,
+                    sys_inst.as_deref(),
                     &prompt,
                     &response_schema,
                     &discord_messages,
