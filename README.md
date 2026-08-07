@@ -12,7 +12,5 @@ Discordにこんな感じに流れてくる。
 - 目の前のNPCとかオブジェクトの解説もさせてみたらとても便利になった
 - デフォルトでは`config.toml`を読むが`game-lens.exe ddo.toml`とかやると別ファイルも読めるようになった
 - ハードコードしてた部分を`config.toml`から読むようにしたので汎用ツールになった
-- Gemini Flash Lite系の無料枠が15RPM/500RPDなのでこのツールで使う程度だと無料でいけそう
-- Gemini 3.1 Flash-Lite Previewだと入力545 出力100-220トークンみたいな感じになるので1回0.05-0.08円
-- Gemini 2.5 Flashだと入力276 出力200+思考トークンという感じで1回0.3円前後
+- Gemini Flash Lite系の無料枠が15RPM/500RPDなのでこのツールで使う程度だと無料でいける
 - 単発のスクリーンショット目的だとWGC([wgc](https://github.com/Atliac/wgc))よりGDI([XCap](https://github.com/nashaofu/xcap))の方が気持ち速くかつ圧倒的に安定している
