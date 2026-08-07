@@ -37,17 +37,34 @@ content_key = "player_options"
 [[actions]]
 key = "f"
 modifiers = ["ctrl", "alt", "shift"]
-prompt = "画像中の左下のチャット欄の文章を読み取り、日本語に翻訳してください。※英語原文のまま出力することは厳禁です"
+prompt = "画像左下のチャット欄の文章を読み取ってください。「(Standard):」「(Dungeon Master):」「(Party):」等の先頭タグは絶対に翻訳せず保持し、タグのない折り返し行は上の行と結合した上で、メッセージ本文のみを日本語に翻訳して出力してください。"
 
 [actions.response_schema]
 type = "OBJECT"
 required = ["lines"]
 [actions.response_schema.properties.lines]
 type = "ARRAY"
-description = "ギルド・パーティのチャット、NPCのセリフ、システムアナウンス、ダンジョンマスターのナレーションなどの日本語翻訳"
+description = "ギルド・パーティのチャット、NPCのセリフ、システムアナウンスなどの抽出結果"
 [actions.response_schema.properties.lines.items]
 type = "STRING"
+description = "「先頭のタグ(英語原文のまま) ＋ 日本語に翻訳された本文(折り返し行は結合)」の形式の文字列"
 
 [[actions.discord_messages]]
 username = "チャット欄"
 content_key = "lines"
+
+[[actions]]
+key = "v"
+modifiers = ["ctrl", "alt", "shift"]
+prompt = "画像中のキャラクターやオブジェクトの上に表示されている名前を日本語訳してください。可能ならどういった人・物・集団などであるのかの解説も付けてください。画像はDungeons & Dragons Onlineのものです。"
+
+[actions.response_schema]
+type = "OBJECT"
+required = ["text"]
+[actions.response_schema.properties.text]
+type = "STRING"
+description = ""
+
+[[actions.discord_messages]]
+username = "画面解説"
+content_key = "text"
