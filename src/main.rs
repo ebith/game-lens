@@ -20,6 +20,7 @@ struct Config {
 struct Core {
     avatar_url: String,
     gemini_api_model: String,
+    thinking_level: String,
     loading_message: String,
     system_instruction: String,
 }
@@ -45,6 +46,7 @@ async fn castg(
     webhook_url: &str,
     avatar_url: &str,
     api_model: &str,
+    thinking_level: &str,
     loading_message: &str,
     system_instruction: &str,
     prompt: &str,
@@ -92,6 +94,9 @@ async fn castg(
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": response_schema,
+            "thinkingConfig": {
+                "thinkingLevel": thinking_level
+            }
         },
         "contents":[{
             "parts":[
@@ -237,6 +242,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let webhook = webhook_url.clone();
             let avatar_url = config.core.avatar_url.clone();
             let model = config.core.gemini_api_model.clone();
+            let thinking_level = config.core.thinking_level.clone();
             let loading_msg = config.core.loading_message.clone();
             let sys_inst = config.core.system_instruction.clone();
             let prompt = action.prompt.clone();
@@ -250,6 +256,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &webhook,
                     &avatar_url,
                     &model,
+                    &thinking_level,
                     &loading_msg,
                     &sys_inst,
                     &prompt,
