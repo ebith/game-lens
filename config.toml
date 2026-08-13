@@ -3,12 +3,12 @@ avatar_url = "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfod
 gemini_api_model = "gemini-3.5-flash-lite"
 thinking_level = "medium"
 loading_message = "翻訳処理中…"
-system_instruction = "提供される画像は『Dungeons & Dragons Online』のスクリーンショットです。指示に従い結果を日本語で出力してください。"
+system_instruction = "提供される画像は『Dungeons & Dragons Online』のスクリーンショットです。翻訳の際はその事に考慮してください。指示に従い結果を必ず日本語で出力してください。"
 
 [[actions]]
 key = "g"
 modifiers = ["ctrl", "alt", "shift"]
-prompt = "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です"
+prompt = "画像中の黒い背景のダイアログの会話文を日本語に翻訳してください。上部の大文字が話者の名前、中央部の黄色い文字の文章が会話本文、下部の字下げされた段落の文章が返事の選択肢です。選択肢に含まれる`Close Window.`は出力不要です。"
 
 [actions.response_schema]
 type = "OBJECT"
@@ -58,14 +58,14 @@ content_key = "lines"
 [[actions]]
 key = "v"
 modifiers = ["ctrl", "alt", "shift"]
-prompt = "画像中のキャラクターやオブジェクトの上に表示されている名前を日本語訳してください。可能ならどういった人・物・集団などであるのかの解説も付けてください。Hirelingは無視してください。ゲームタイトルは明らかなので出力不要です"
+prompt = "画像中のキャラクターやオブジェクトの上に表示されている名前を日本語訳してください。可能ならどういった人・物・集団などであるのかの解説も付けてください。ペット・Hireling・プレイヤーキャラクター・ゲームタイトルに関しては出力不要です。"
 
 [actions.response_schema]
 type = "OBJECT"
 required = ["text"]
 [actions.response_schema.properties.text]
 type = "STRING"
-description = ""
+description = "Markdown形式の解説文"
 
 [[actions.discord_messages]]
 username = "画面解説"
