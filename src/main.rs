@@ -29,6 +29,8 @@ struct Core {
 struct DiscordMessageConfig {
     username: String,
     content_key: String,
+    #[serde(default)]
+    as_markdown_list: bool,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -134,7 +136,15 @@ async fn castg(
                     let mut content = String::new();
                     if let Some(val) = parsed.get(&msg_config.content_key) {
                         if let Some(arr) = val.as_array() {
-                            let strings: Vec<&str> = arr.iter().filter_map(|v| v.as_str()).collect();
+                            let strings: Vec<String> = arr.iter().filter_map(|v| {
+                                v.as_str().map(|s| {
+                                    if msg_config.as_markdown_list {
+                                        format!("- {}", s)
+                                    } else {
+                                        s.to_string()
+                                    }
+                                })
+                            }).collect();
                             content = strings.join("\n");
                         } else if let Some(s) = val.as_str() {
                             content = s.to_string();

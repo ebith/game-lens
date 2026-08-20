@@ -34,6 +34,7 @@ content_key = "body_text"
 [[actions.discord_messages]]
 username = "選択肢"
 content_key = "player_options"
+as_markdown_list = true
 
 
 [[actions]]
