@@ -9,6 +9,7 @@ Discordにこんな感じに流れてくる。
 <img src="https://github.com/user-attachments/assets/6c9549cc-06ec-4e9e-89d4-662ec02325d4" width="33%"/>
 
 ## メモ
+- Flash Liteだとチャット欄の様な雑多な翻訳は苦手だがthinkingLevelをmediumに設定すると少し待つ代わりに安定した
 - 目の前のNPCとかオブジェクトの解説もさせてみたらとても便利になった
 - デフォルトでは`config.toml`を読むが`game-lens.exe ddo.toml`とかやると別ファイルも読めるようになった
 - ハードコードしてた部分を`config.toml`から読むようにしたので汎用ツールになった
