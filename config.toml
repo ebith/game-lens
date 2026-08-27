@@ -3,7 +3,7 @@ avatar_url = "https://images-ext-1.discordapp.net/external/SfHNcPgzdvapQgglxxfod
 gemini_api_model = "gemini-3.5-flash-lite"
 thinking_level = "medium"
 loading_message = "翻訳処理中…"
-system_instruction = "提供される画像は『Dungeons & Dragons Online』のスクリーンショットです。翻訳の際はその事に考慮してください。指示に従い結果を必ず日本語で出力してください。"
+system_instruction = "提供される画像は『Dungeons & Dragons Online』のスクリーンショットです。翻訳や解説の際はその設定を前提として考慮してください。指示に従い結果を必ず日本語で出力してください。なお、対象が本ゲーム内のものであることは自明であるため、出力文中に『Dungeons & Dragons Online』『DDO』『本作』『ゲーム内では』といったゲーム名やメタ的な前置き・言及を一切含めないでください。解説は世界観内の直接的な説明のみを簡潔に記述してください。"
 
 [[actions]]
 key = "g"
@@ -57,17 +57,49 @@ username = "チャット欄"
 content_key = "lines"
 
 [[actions]]
-key = "v"
+key = "t"
 modifiers = ["ctrl", "alt", "shift"]
-prompt = "画像中のキャラクターやオブジェクトの上に表示されている名前を日本語訳してください。可能ならどういった人・物・集団などであるのかの解説も付けてください。ペット・Hireling・プレイヤーキャラクター・ゲームタイトルに関しては出力不要です。"
+prompt = """画像中のキャラクターやオブジェクトの上に表示されている名前を日本語訳してください。対象が複数いる場合はすべて抽出してください。可能ならどういった人・物・集団などであるのかの解説も付けてください。ペット・Hireling・プレイヤーキャラクター・ゲームタイトルに関しては出力不要です。
+出力は以下の形式を対象ごとに繰り返し、行ごとに分割してリスト化してください。
+・"## [名前の日本語訳]"
+・"[解説文]"（複数行可）
+・""（次の対象に移るための空行）
+"""
 
 [actions.response_schema]
 type = "OBJECT"
 required = ["text"]
 [actions.response_schema.properties.text]
+type = "ARRAY"
+description = "Markdown形式の解説文（行ごとのリスト）"
+[actions.response_schema.properties.text.items]
 type = "STRING"
-description = "Markdown形式の解説文"
 
 [[actions.discord_messages]]
 username = "画面解説"
+content_key = "text"
+
+[[actions]]
+key = "b"
+modifiers = ["ctrl", "alt", "shift"]
+prompt = """画像右上の小さなウインドウを元にクエスト名とクエストの目的を日本語訳してください。クエスト名はただカタカナにするのではなく意味を重視した翻訳にしてください。クエストの背景・導入・物語などの要約を添えてください。
+出力は以下の形式で行ごとに分割してリスト化してください。
+・"## [クエスト名]"
+・"- [目的やオプション目的のリスト]"（複数行可）
+・""（空行）
+・"## あらすじ"
+・"[あらすじの本文]"
+"""
+
+[actions.response_schema]
+type = "OBJECT"
+required = ["text"]
+[actions.response_schema.properties.text]
+type = "ARRAY"
+description = "Markdown形式の解説文（行ごとのリスト）"
+[actions.response_schema.properties.text.items]
+type = "STRING"
+
+[[actions.discord_messages]]
+username = "クエスト情報"
 content_key = "text"
